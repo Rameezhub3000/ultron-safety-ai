@@ -1,0 +1,18 @@
+{
+  "short_name": "ULTRON",
+  "name": "ULTRON Tactical AI Safety Assistant",
+  "icons": [
+    {
+      "src": "/archreactor-logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0d0d12",
+  "theme_color": "#0d0d12",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "description": "Tactical AI personal safety assistant with offline emergency protocols, hands-free voice distress detection, and real-time live location dispatch."
+}

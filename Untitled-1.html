@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Personal Safety Assistant</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: #d1d5db;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 30px auto;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            margin-bottom: 15px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 130px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            resize: vertical;
+            font-size: 16px;
+        }
+
+        button {
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            margin-top: 12px;
+        }
+
+        .analyze-btn {
+            background: #2563eb;
+            color: white;
+        }
+
+        .sos-btn {
+            background: #dc2626;
+            color: white;
+            width: 100%;
+            font-size: 22px;
+            font-weight: bold;
+            padding: 20px;
+        }
+
+        .location-btn {
+            background: #059669;
+            color: white;
+        }
+
+        .contact-btn {
+            background: #7c3aed;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .low {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status {
+            padding: 15px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .contact {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>🛡️ AI Personal Safety Assistant</h1>
+    <p>Your intelligent safety companion</p>
+</header>
+
+<div class="container">
+
+    <div class="dashboard">
+
+        <!-- AI Assistant -->
+        <div>
+
+            <div class="card">
+                <h2>🤖 AI Safety Assistant</h2>
+
+                <p>
+                    Describe your situation and the AI will perform a basic
+                    safety-risk assessment.
+                </p>
+
+                <br>
+
+                <textarea
+                    id="message"
+                    placeholder="Example: I am walking home and someone is following me..."
+                ></textarea>
+
+                <button
+                    class="analyze-btn"
+                    onclick="analyzeSafety()">
+                    Analyze Safety
+                </button>
+
+                <div id="result" class="result">
+                    <h3 id="riskLevel"></h3>
+                    <p id="riskMessage"></p>
+                    <p id="riskScore"></p>
+                </div>
+            </div>
+
+            <!-- Location -->
+            <div class="card">
+                <h2>📍 Current Location</h2>
+
+                <p id="locationStatus">
+                    Location has not been detected.
+                </p>
+
+                <button
+                    class="location-btn"
+                    onclick="getLocation()">
+                    Detect My Location
+                </button>
+            </div>
+
+            <!-- Emergency Contacts -->
+            <div class="card">
+                <h2>👥 Emergency Contacts</h2>
+
+                <input
+                    type="text"
+                    id="contactName"
+                    placeholder="Contact name">
+
+                <input
+                    type="tel"
+                    id="contactPhone"
+                    placeholder="Phone number">
+
+                <button
+                    class="contact-btn"
+                    onclick="addContact()">
+                    Add Contact
+                </button>
+
+                <div id="contacts">
+                    Loading contacts...
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- Emergency Panel -->
+        <div>
+
+            <div class="card">
+                <h2>🚨 Emergency</h2>
+
+                <p>
+                    Use SOS only when you need immediate assistance.
+                </p>
+
+                <button
+                    class="sos-btn"
+                    onclick="activateSOS()">
+                    🆘 SOS
+                </button>
+
+                <div id="sosStatus" class="status">
+                    SOS is inactive.
+                </div>
+            </div>
+
+            <div class="card">
+
+                <h2>🛡️ Safety Status</h2>
+
+                <div class="status">
+                    <strong>AI Assistant:</strong>
+                    <span>Ready</span>
+                </div>
+
+                <div class="status">
+                    <strong>GPS:</strong>
+                    <span id="gpsStatus">Not detected</span>
+                </div>
+
+                <div class="status">
+                    <strong>Emergency Contacts:</strong>
+                    <span id="contactCount">0</span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<footer>
+    AI Personal Safety Assistance System © 2026
+</footer>
+
+
+<script>
+
+    let latitude = null;
+    let longitude = null;
+
+
+    // -----------------------------
+    // AI SAFETY ANALYSIS
+    // -----------------------------
+
+    async function analyzeSafety() {
+
+        const message =
+            document.getElementById("message").value.trim();
+
+        if (!message) {
+            alert("Please describe your situation.");
+            return;
+        }
+
+        try {
+
+            const response = await fetch("/api/analyze", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    text: message,
+                    latitude: latitude,
+                    longitude: longitude
+                })
+
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                alert(data.error || "Analysis failed.");
+                return;
+            }
+
+            const result =
+                document.getElementById("result");
+
+            result.style.display = "block";
+
+            result.className =
+                "result " + data.risk_level.toLowerCase();
+
+            document.getElementById("riskLevel").innerText =
+                "Risk Level: " + data.risk_level;
+
+            document.getElementById("riskMessage").innerText =
+                data.message;
+
+            document.getElementById("riskScore").innerText =
+                "Risk Score: " + data.score + "/100";
+
+        } catch (error) {
+
+            console.error(error);
+
+            alert(
+                "Unable to connect to the safety server."
+            );
+        }
+    }
+
+
+    // -----------------------------
+    // GET GPS LOCATION
+    // -----------------------------
+
+    function getLocation() {
+
+        const status =
+            document.getElementById("locationStatus");
+
+        if (!navigator.geolocation) {
+
+            status.innerText =
+                "Geolocation is not supported by this browser.";
+
+            return;
+        }
+
+        status.innerText =
+            "Detecting location...";
+
+        navigator.geolocation.getCurrentPosition(
+
+            function(position) {
+
+                latitude =
+                    position.coords.latitude;
+
+                longitude =
+                    position.coords.longitude;
+
+                status.innerText =
+                    "Location detected: " +
+                    latitude.toFixed(5) +
+                    ", " +
+                    longitude.toFixed(5);
+
+                document.getElementById("gpsStatus").innerText =
+                    "Detected";
+
+            },
+
+            function(error) {
+
+                console.error(error);
+
+                status.innerText =
+                    "Unable to access your location.";
+
+                document.getElementById("gpsStatus").innerText =
+                    "Unavailable";
+            }
+
+        );
+    }
+
+
+    // -----------------------------
+    // SOS
+    // -----------------------------
+
+    async function activateSOS() {
+
+        const confirmation =
+            confirm(
+                "Are you sure you want to activate SOS?"
+            );
+
+        if (!confirmation) {
+            return;
+        }
+
+        const status =
+            document.getElementById("sosStatus");
+
+        status.innerText =
+            "🚨 SOS ACTIVATED. Processing emergency request...";
+
+        try {
+
+            const response = await fetch(
+                "/api/sos",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        latitude: latitude,
+                        longitude: longitude
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (data.success) {
+
+                status.innerText =
+                    "🚨 " + data.message;
+
+            } else {
+
+                status.innerText =
+                    "Unable to activate SOS.";
+
+            }
+
+        } catch (error) {
+
+            console.error(error);
+
+            status.innerText =
+                "Server connection failed.";
+
+        }
+    }
+
+
+    // -----------------------------
+    // ADD EMERGENCY CONTACT
+    // -----------------------------
+
+    async function addContact() {
+
+        const name =
+            document.getElementById("contactName")
+                .value.trim();
+
+        const phone =
+            document.getElementById("contactPhone")
+                .value.trim();
+
+        if (!name || !phone) {
+
+            alert(
+                "Please enter both name and phone number."
+            );
+
+            return;
+        }
+
+        try {
+
+            const response = await fetch(
+                "/api/contacts",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        name: name,
+                        phone: phone
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (!data.success) {
+
+                alert(data.error);
+
+                return;
+            }
+
+            document.getElementById("contactName").value = "";
+            document.getElementById("contactPhone").value = "";
+
+            loadContacts();
+
+        } catch (error) {
+
+            console.error(error);
+
+            alert(
+                "Unable to add emergency contact."
+            );
+        }
+    }
+
+
+    // -----------------------------
+    // LOAD CONTACTS
+    // -----------------------------
+
+    async function loadContacts() {
+
+        try {
+
+            const response =
+                await fetch("/api/contacts");
+
+            const contacts =
+                await response.json();
+
+            const container =
+                document.getElementById("contacts");
+
+            container.innerHTML = "";
+
+            document.getElementById("contactCount")
+                .innerText = contacts.length;
+
+            if (contacts.length === 0) {
+
+                container.innerHTML =
+                    "<p>No emergency contacts added.</p>";
+
+                return;
+            }
+
+            contacts.forEach(function(contact) {
+
+                const div =
+                    document.createElement("div");
+
+                div.className = "contact";
+
+                div.innerHTML = `
+                    <div>
+                        <strong>${escapeHTML(contact.name)}</strong>
+                        <br>
+                        ${escapeHTML(contact.phone)}
+                    </div>
+                `;
+
+                container.appendChild(div);
+
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            document.getElementById("contacts")
+                .innerText =
+                "Unable to load contacts.";
+        }
+    }
+
+
+    // -----------------------------
+    // BASIC HTML ESCAPING
+    // -----------------------------
+
+    function escapeHTML(value) {
+
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+
+    // Load contacts when page opens
+    loadContacts();
+
+</script>
+
+</body>
+</html>
