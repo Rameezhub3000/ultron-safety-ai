@@ -5,6 +5,7 @@ import { speakUltron, isUltronSpeaking, stopUltronSpeech, initVoices, getAvailab
 import { isDeviceOnline, queueOfflineAlert, getCachedContacts } from '../utils/offlineStorage';
 import { startAudioAnalysis, stopAudioAnalysis, isAudioAnalyzerActive } from '../utils/audioAnalyzer';
 import { evaluateEmergencyCodeWords } from '../utils/emergencyDetector';
+import { triggerNativeCall } from '../utils/dialerService';
 
 export default function VoiceController() {
   const [isListening, setIsListening] = useState(false);
@@ -97,14 +98,8 @@ export default function VoiceController() {
         timestamp: new Date().toISOString()
       });
 
-      // Immediate local cellular dial
-      const cached = getCachedContacts();
-      const primaryPhone = cached.length > 0 ? cached[0].phone : '911';
-      const a = document.createElement('a');
-      a.href = `tel:${primaryPhone}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // Immediate local cellular dial via device native dialer
+      triggerNativeCall();
 
       setTimeout(() => {
         isTriggeringSosRef.current = false;
@@ -112,8 +107,11 @@ export default function VoiceController() {
       return;
     }
 
-    // 2. Online Mode: Real-time Live Location, Nodemailer Emails & Twilio Calls
+    // 2. Online Mode: Real-time Live Location, Nodemailer Emails & Direct Phone Call
     speakUltron("Code word detected, activating Ultron.");
+
+    // Immediately launch native phone dialer with primary emergency contact
+    triggerNativeCall();
 
     const sendAlert = async (locationCoords) => {
       try {
@@ -121,7 +119,7 @@ export default function VoiceController() {
           type: `VOICE_SOS [${codeWord.toUpperCase()}]`,
           location: locationCoords
         });
-        console.log(`[ULTRON VOICE] ✅ SOS alert posted. Backend is dialing contacts via Twilio.`);
+        console.log(`[ULTRON VOICE] ✅ SOS alert posted. Live location dispatched to contacts.`);
       } catch (err) {
         console.error("[ULTRON VOICE] SOS Dispatch API error:", err);
         queueOfflineAlert({

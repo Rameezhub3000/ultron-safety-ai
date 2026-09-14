@@ -126,6 +126,25 @@ export default function ContactManager() {
                 <div style={{ color: '#94a3b8', fontSize: '14px', marginTop: '5px' }}>{c.phone} {c.email ? ` | ${c.email}` : ''}</div>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <a 
+                  href={`tel:${c.phone.replace(/[\s\-\(\)]/g, '')}`}
+                  title="Direct Cellular Call (Using Phone SIM - 100% Free)"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
+                    color: '#ffffff', 
+                    textDecoration: 'none',
+                    padding: '8px 16px', 
+                    borderRadius: '10px',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.35)'
+                  }}
+                >
+                  <Phone size={14} /> Call (SIM)
+                </a>
                 <button 
                   type="button" 
                   onClick={() => handleTwilioCall(c.phone, c.name)}
