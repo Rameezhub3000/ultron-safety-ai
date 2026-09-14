@@ -340,6 +340,8 @@ export default function Dashboard() {
               { label: '🚨 "Help"', phrase: 'help' },
               { label: '🚨 "Save me"', phrase: 'save me' },
               { label: '🚨 "Someone is attacking"', phrase: 'someone is attacking' },
+              { label: '🚓 "Call the police"', phrase: 'call the police' },
+              { label: '🚑 "Call an ambulance"', phrase: 'call an ambulance' },
               { label: '💬 "Ultron"', phrase: 'ultron' },
             ].map((item) => (
               <button

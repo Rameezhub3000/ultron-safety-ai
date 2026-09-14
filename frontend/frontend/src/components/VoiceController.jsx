@@ -79,6 +79,22 @@ export default function VoiceController() {
     // Immediately stop any TTS playback
     stopUltronSpeech();
 
+    // Determine target emergency number and voice announcement based on specific code word
+    const lower = (codeWord || '').toLowerCase();
+    const cached = getCachedContacts();
+    let targetPhone = null;
+    let spokenAlert = "Code word detected, activating Ultron.";
+
+    if (lower.includes('police')) {
+      const policeContact = cached.find(c => c.name && c.name.toLowerCase().includes('police'));
+      targetPhone = policeContact ? policeContact.phone : '112';
+      spokenAlert = "Police emergency code word detected. Activating Ultron and calling emergency police services.";
+    } else if (lower.includes('ambulance') || lower.includes('medical')) {
+      const ambulanceContact = cached.find(c => c.name && c.name.toLowerCase().includes('ambulance'));
+      targetPhone = ambulanceContact ? ambulanceContact.phone : '108';
+      spokenAlert = "Ambulance emergency code word detected. Activating Ultron and calling emergency medical services.";
+    }
+
     // Notify user visually and audibly
     setActiveAlert({
       codeWord,
@@ -90,7 +106,7 @@ export default function VoiceController() {
 
     if (!online) {
       console.log(`[ULTRON VOICE] ⚠️ OFFLINE MODE: Triggering local emergency protocols.`);
-      speakUltron("Code word detected, activating Ultron.");
+      speakUltron(spokenAlert);
 
       queueOfflineAlert({
         type: `VOICE_SOS [${codeWord.toUpperCase()}]`,
@@ -99,7 +115,7 @@ export default function VoiceController() {
       });
 
       // Immediate local cellular dial via device native dialer
-      triggerNativeCall();
+      triggerNativeCall(targetPhone);
 
       setTimeout(() => {
         isTriggeringSosRef.current = false;
@@ -108,10 +124,10 @@ export default function VoiceController() {
     }
 
     // 2. Online Mode: Real-time Live Location, Nodemailer Emails & Direct Phone Call
-    speakUltron("Code word detected, activating Ultron.");
+    speakUltron(spokenAlert);
 
-    // Immediately launch native phone dialer with primary emergency contact
-    triggerNativeCall();
+    // Immediately launch native phone dialer with target phone or primary emergency contact
+    triggerNativeCall(targetPhone);
 
     const sendAlert = async (locationCoords) => {
       try {

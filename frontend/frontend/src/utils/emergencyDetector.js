@@ -64,11 +64,28 @@ export function evaluateEmergencyCodeWords(rawText) {
     { phrase: 'i am in danger', label: 'i am in danger' },
     { phrase: 'im in danger', label: 'i am in danger' },
 
-    // Emergency / Police dispatch variations
+    // Police dispatch variations
     { phrase: 'call the police', label: 'call the police' },
     { phrase: 'call police', label: 'call the police' },
+    { phrase: 'police please', label: 'call the police' },
+    { phrase: 'i need police', label: 'call the police' },
+    { phrase: 'call 100', label: 'call the police' },
     { phrase: 'call 911', label: 'call the police' },
     { phrase: 'call 112', label: 'call the police' },
+
+    // Ambulance / Medical dispatch variations
+    { phrase: 'call an ambulance', label: 'call an ambulance' },
+    { phrase: 'call ambulance', label: 'call an ambulance' },
+    { phrase: 'need an ambulance', label: 'call an ambulance' },
+    { phrase: 'need ambulance', label: 'call an ambulance' },
+    { phrase: 'send an ambulance', label: 'call an ambulance' },
+    { phrase: 'send ambulance', label: 'call an ambulance' },
+    { phrase: 'call 108', label: 'call an ambulance' },
+    { phrase: 'call 102', label: 'call an ambulance' },
+    { phrase: 'medical emergency', label: 'call an ambulance' },
+    { phrase: 'doctor emergency', label: 'call an ambulance' },
+
+    // General Emergency / SOS variations
     { phrase: 'send emergency alert', label: 'emergency' },
     { phrase: 'send alert', label: 'emergency' },
     { phrase: 'emergency alert', label: 'emergency' },
@@ -104,6 +121,10 @@ export function evaluateEmergencyCodeWords(rawText) {
 
   if (/\bpolice\b/i.test(normalized)) {
     return { matched: true, codeWord: 'call the police', source: rawText };
+  }
+
+  if (/\bambulance\b/i.test(normalized)) {
+    return { matched: true, codeWord: 'call an ambulance', source: rawText };
   }
 
   if (/\bdanger\b/i.test(normalized)) {
