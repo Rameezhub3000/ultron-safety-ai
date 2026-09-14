@@ -5,7 +5,7 @@ import { saveCachedContacts, getCachedContacts, isDeviceOnline } from '../utils/
 
 export default function ContactManager() {
   const [contacts, setContacts] = useState([]);
-  const [newContact, setNewContact] = useState({ name: '', phone: '', email: '' });
+  const [newContact, setNewContact] = useState({ name: '', phone: '', email: '', telegram: '' });
   const [isOffline, setIsOffline] = useState(!isDeviceOnline());
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function ContactManager() {
     e.preventDefault();
     try {
       await axios.post('http://localhost:5000/api/contacts', newContact);
-      setNewContact({ name: '', phone: '', email: '' });
+      setNewContact({ name: '', phone: '', email: '', telegram: '' });
       fetchContacts();
     } catch (error) {
       console.error(error);
@@ -47,6 +47,22 @@ export default function ContactManager() {
   };
 
   const [callingStatus, setCallingStatus] = useState('');
+
+  const handleCallMeBotCall = async (target, name) => {
+    setCallingStatus(`📞 Placing free automated CallMeBot voice call to ${name} (${target})...`);
+    try {
+      const res = await axios.post('http://localhost:5000/api/callmebot/call', { 
+        user: target,
+        message: `Hello ${name}. This is an automated safety emergency call from Ultron Assistant.`
+      });
+      setCallingStatus(`✅ CallMeBot call dispatched! ${name}'s Telegram is ringing now.`);
+      setTimeout(() => setCallingStatus(''), 8000);
+    } catch (err) {
+      const errMsg = err.response?.data?.error || err.message;
+      setCallingStatus(`⚠️ CallMeBot notice: ${errMsg} (Make sure @CallMeBot_txtbot was started on Telegram)`);
+      setTimeout(() => setCallingStatus(''), 12000);
+    }
+  };
 
   const handleTwilioCall = async (phone, name) => {
     setCallingStatus(`📞 Placing Twilio carrier call directly to ${name} (${phone})...`);
@@ -111,6 +127,12 @@ export default function ContactManager() {
             value={newContact.email} 
             onChange={(e) => setNewContact({...newContact, email: e.target.value})} 
           />
+          <input 
+            type="text" 
+            placeholder="Telegram Username (e.g. @sreesanth or phone - for Free Automated Call)" 
+            value={newContact.telegram} 
+            onChange={(e) => setNewContact({...newContact, telegram: e.target.value})} 
+          />
           <button type="submit">Save Contact</button>
         </form>
       </div>
@@ -123,9 +145,31 @@ export default function ContactManager() {
             <li key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid rgba(56, 189, 248, 0.15)' }}>
               <div>
                 <strong style={{ fontSize: '18px', color: '#ffffff' }}>{c.name}</strong>
-                <div style={{ color: '#94a3b8', fontSize: '14px', marginTop: '5px' }}>{c.phone} {c.email ? ` | ${c.email}` : ''}</div>
+                <div style={{ color: '#94a3b8', fontSize: '14px', marginTop: '5px' }}>
+                  {c.phone} {c.email ? ` | ${c.email}` : ''} {c.telegram ? ` | Telegram: ${c.telegram}` : ''}
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button 
+                  type="button" 
+                  onClick={() => handleCallMeBotCall(c.telegram || c.phone, c.name)}
+                  title="Automated Hands-Free Voice Call via CallMeBot (100% Free)"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #0284c7 0%, #00d2ff 100%)', 
+                    color: '#ffffff', 
+                    border: 'none', 
+                    padding: '8px 16px', 
+                    borderRadius: '10px',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    boxShadow: '0 4px 15px rgba(0, 210, 255, 0.35)'
+                  }}
+                >
+                  <Phone size={14} /> Call (CallMeBot)
+                </button>
                 <a 
                   href={`tel:${c.phone.replace(/[\s\-\(\)]/g, '')}`}
                   title="Direct Cellular Call (Using Phone SIM - 100% Free)"
@@ -147,25 +191,6 @@ export default function ContactManager() {
                 </a>
                 <button 
                   type="button" 
-                  onClick={() => handleTwilioCall(c.phone, c.name)}
-                  title="Directly call contact phone via Twilio backend"
-                  style={{ 
-                    background: 'linear-gradient(135deg, #0284c7 0%, #00d2ff 100%)', 
-                    color: '#ffffff', 
-                    border: 'none', 
-                    padding: '8px 16px', 
-                    borderRadius: '10px',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '6px',
-                    fontWeight: '600',
-                    boxShadow: '0 4px 15px rgba(0, 210, 255, 0.35)'
-                  }}
-                >
-                  <Phone size={14} /> Call (Twilio)
-                </button>
-                <button 
-                  type="button" 
                   onClick={() => deleteContact(c.id)} 
                   style={{ 
                     background: 'rgba(239, 68, 68, 0.15)', 
@@ -181,6 +206,21 @@ export default function ContactManager() {
             </li>
           ))}
         </ul>
+      </div>
+
+      {/* CallMeBot Free Voice Calls Setup Guide */}
+      <div className="card" style={{ marginTop: '20px', background: 'rgba(14, 165, 233, 0.08)', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+        <h4 style={{ color: '#00d2ff', marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          🤖 Free Automated Voice Calls Setup (CallMeBot):
+        </h4>
+        <p style={{ fontSize: '13px', color: '#e2e8f0', lineHeight: '1.6', marginBottom: '10px' }}>
+          When you scream <em>"help"</em> or trigger SOS, Ultron automatically places a voice call to your trusted contact's Telegram hands-free:
+        </p>
+        <ol style={{ fontSize: '13px', color: '#94a3b8', lineHeight: '1.8', paddingLeft: '20px', margin: 0 }}>
+          <li>Your contact opens Telegram and searches for <strong style={{ color: '#38bdf8' }}>@CallMeBot_txtbot</strong> (or visits <a href="https://t.me/CallMeBot_txtbot" target="_blank" rel="noreferrer" style={{ color: '#00d2ff' }}>t.me/CallMeBot_txtbot</a>).</li>
+          <li>They tap <strong>Start</strong> (or send <code>/start</code>) once to authorize the bot.</li>
+          <li>Add their Telegram username (e.g. <code>@sreesanth</code>) above. Now Ultron will call their phone automatically without you touching anything!</li>
+        </ol>
       </div>
     </div>
   );

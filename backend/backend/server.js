@@ -7,6 +7,7 @@ const contactsRouter = require('./routes/contacts');
 const alertsRouter = require('./routes/alerts');
 const aiRouter = require('./routes/ai');
 const twilioRouter = require('./routes/twilio');
+const callmebotRouter = require('./routes/callmebot');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,6 +20,7 @@ app.use('/api/contacts', contactsRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/twilio', twilioRouter);
+app.use('/api/callmebot', callmebotRouter);
 
 app.get('/', (req, res) => {
     res.send('ULTRON Backend is running');

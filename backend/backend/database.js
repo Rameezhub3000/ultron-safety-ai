@@ -13,8 +13,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             phone TEXT NOT NULL,
-            email TEXT
+            email TEXT,
+            telegram TEXT
         )`);
+
+        // Migration: Ensure telegram column exists for existing databases
+        db.run(`ALTER TABLE contacts ADD COLUMN telegram TEXT`, (err) => {
+            // Ignore if column already exists
+        });
 
         // Create Alerts Table
         db.run(`CREATE TABLE IF NOT EXISTS alerts (

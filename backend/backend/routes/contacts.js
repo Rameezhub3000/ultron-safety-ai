@@ -13,13 +13,13 @@ router.get('/', (req, res) => {
 
 // Add a new contact
 router.post('/', (req, res) => {
-    const { name, phone, email } = req.body;
+    const { name, phone, email, telegram } = req.body;
     if (!name || !phone) return res.status(400).json({ error: 'Name and phone are required' });
     
     const id = uuidv4();
-    db.run('INSERT INTO contacts (id, name, phone, email) VALUES (?, ?, ?, ?)', [id, name, phone, email], function(err) {
+    db.run('INSERT INTO contacts (id, name, phone, email, telegram) VALUES (?, ?, ?, ?, ?)', [id, name, phone, email, telegram || null], function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ id, name, phone, email });
+        res.json({ id, name, phone, email, telegram });
     });
 });
 

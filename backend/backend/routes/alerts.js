@@ -4,6 +4,7 @@ const db = require('../database');
 const { v4: uuidv4 } = require('uuid');
 const { sendEmergencyLocationEmail } = require('../services/emailService');
 const { placeEmergencyCalls } = require('../services/twilioService');
+const { placeEmergencyCallMeBotAlerts } = require('../services/callMeBotService');
 
 // Get all alerts (Alert History)
 router.get('/', (req, res) => {
@@ -53,6 +54,13 @@ router.post('/', (req, res) => {
                     await placeEmergencyCalls(contacts, alertData);
                 } catch (twilioErr) {
                     console.error('[ALERT DISPATCH] Twilio call error:', twilioErr.message);
+                }
+
+                // 3. Dispatch 100% Free Automated CallMeBot Voice Calls & Alerts
+                try {
+                    await placeEmergencyCallMeBotAlerts(contacts, alertData);
+                } catch (callmeErr) {
+                    console.error('[ALERT DISPATCH] CallMeBot error:', callmeErr.message);
                 }
 
                 console.log(`🚨 ==================================================================== 🚨\n`);
