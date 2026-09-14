@@ -6,9 +6,14 @@ import { getCachedContacts } from './offlineStorage';
 /**
  * Clean phone number for tel: URI
  */
-export function formatPhoneForDialer(phone) {
+export function formatPhoneForDialer(phone, defaultCountryCode = '+91') {
   if (!phone) return '';
-  return String(phone).replace(/[\s\-\(\)]/g, '').trim();
+  let cleaned = String(phone).replace(/[\s\-\(\)]/g, '').trim();
+  if (cleaned.startsWith('+')) return cleaned;
+  if (cleaned.startsWith('00')) return '+' + cleaned.substring(2);
+  if (/^\d{10}$/.test(cleaned)) return `${defaultCountryCode}${cleaned}`;
+  if (/^91\d{10}$/.test(cleaned)) return `+${cleaned}`;
+  return cleaned;
 }
 
 /**
