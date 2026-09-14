@@ -31,3 +31,8 @@ yarn-error.log*
 # Editor & System Files
 .DS_Store
 Thumbs.db
+
+# Presentation files
+*.pptx
+expo_presentation_assets/
+generate_expo_ppt.py
