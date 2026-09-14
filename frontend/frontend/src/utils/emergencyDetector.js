@@ -14,6 +14,11 @@ export function evaluateEmergencyCodeWords(rawText) {
 
   if (!normalized) return null;
 
+  // Explicitly ignore assistant wake words when spoken without distress words
+  if (/^(hey |hi |hello |ok )?ultron$/i.test(normalized)) {
+    return null;
+  }
+
   // 1. High-priority exact & multi-word phrase patterns
   const priorityPhrases = [
     // Attack variations

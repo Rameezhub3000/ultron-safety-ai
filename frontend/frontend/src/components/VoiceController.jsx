@@ -209,22 +209,41 @@ export default function VoiceController() {
           }
         }
 
-        // Rolling transcript across recent segments to detect multi-word phrases across turns
-        let rollingRecent = '';
-        const startChunk = Math.max(0, event.results.length - 4);
-        for (let i = startChunk; i < event.results.length; i++) {
-          rollingRecent += ' ' + event.results[i][0].transcript;
-        }
-        rollingRecent = rollingRecent.trim();
-
-        const activeText = (currentFinal || currentInterim || rollingRecent).trim();
+        const activeText = (currentFinal || currentInterim).trim();
         if (!activeText) return;
 
         setTranscript(activeText);
         window.dispatchEvent(new CustomEvent('ultron-voice-transcript', { detail: { transcript: activeText } }));
 
-        // 1. Check for Emergency Code Words IMMEDIATELY across activeText, rollingRecent, and alternatives
-        let sosMatch = evaluateEmergencyCodeWords(activeText) || evaluateEmergencyCodeWords(rollingRecent);
+        const lowerText = activeText.toLowerCase();
+
+        // 1. Wake word only (e.g. "ultron", "hey ultron", "hi ultron") -> Assistant Greeting, NEVER emergency!
+        if (/^(hey |hi |hello |ok )?ultron$/i.test(lowerText.trim())) {
+          if (currentFinal) {
+            speakUltron("Yes, I am online and listening. How can I assist you?");
+          }
+          return;
+        }
+
+        // 2. AI Assistant command (e.g. "Ultron, what is protocol alpha?")
+        if (lowerText.startsWith('ultron') || lowerText.startsWith('hey ultron')) {
+          const hasEmergencyKeyword = /\b(help|save|attack|attacking|attacked|danger|police|sos)\b/i.test(lowerText);
+          if (!hasEmergencyKeyword) {
+            if (currentFinal) {
+              const commandIndex = lowerText.indexOf('ultron') + 6;
+              const command = lowerText.substring(commandIndex).replace(/^[,\s.:?!]+/, '').trim();
+              if (command.length > 0) {
+                handleAICommand(command);
+              } else {
+                speakUltron("Yes, I am online and listening. How can I assist you?");
+              }
+            }
+            return;
+          }
+        }
+
+        // 3. Emergency Distress Code Word Detection (e.g. "help", "save me", "someone is attacking")
+        let sosMatch = evaluateEmergencyCodeWords(activeText);
 
         if (!sosMatch) {
           for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -242,20 +261,6 @@ export default function VoiceController() {
         if (sosMatch && sosMatch.matched) {
           triggerVoiceSOS(sosMatch.codeWord);
           return;
-        }
-
-        // 2. AI Wake Word / Assistant Command Detection
-        const lowerText = activeText.toLowerCase();
-        if (lowerText.includes('ultron')) {
-          if (currentFinal) {
-            const commandIndex = lowerText.indexOf('ultron') + 6;
-            const command = lowerText.substring(commandIndex).replace(/^[,\s.:?!]+/, '').trim();
-            if (command.length > 0) {
-              handleAICommand(command);
-            } else {
-              speakUltron("Yes, I am online and listening. How can I assist you?");
-            }
-          }
         }
       };
 
