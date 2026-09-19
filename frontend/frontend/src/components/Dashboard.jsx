@@ -331,18 +331,22 @@ export default function Dashboard() {
 
         {/* 1-Click Simulated Voice Chips (Guarantees Testing on any Machine) */}
         <div style={{ marginTop: '22px', borderTop: '1px solid rgba(56, 189, 248, 0.15)', paddingTop: '16px' }}>
-          <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-            <Sparkles size={14} color="#00d2ff" /> Test Emergency Code Words (Click to trigger instantly or speak aloud):
+          <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <Sparkles size={14} color="#00d2ff" /> Two-Stage Voice Safety Testing:
           </div>
+          <p style={{ fontSize: '12px', color: '#38bdf8', margin: '0 0 12px 0', opacity: 0.9 }}>
+            Step 1: Click <strong>"Ultron"</strong> to arm for 15s ➔ Step 2: Click any emergency codeword within 15s to trigger SOS!
+          </p>
 
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {[
+              { label: '🛡️ 1. "Ultron" (Arm 15s)', phrase: 'ultron', highlight: true },
               { label: '🚨 "Help"', phrase: 'help' },
               { label: '🚨 "Save me"', phrase: 'save me' },
               { label: '🚨 "Someone is attacking"', phrase: 'someone is attacking' },
               { label: '🚓 "Call the police"', phrase: 'call the police' },
               { label: '🚑 "Call an ambulance"', phrase: 'call an ambulance' },
-              { label: '💬 "Ultron"', phrase: 'ultron' },
+              { label: '⚡ "Ultron Help" (Instant)', phrase: 'ultron help' },
             ].map((item) => (
               <button
                 key={item.phrase}
@@ -351,14 +355,14 @@ export default function Dashboard() {
                 title={`Simulate saying "${item.phrase}"`}
                 style={{
                   fontSize: '12px',
-                  background: 'rgba(14, 165, 233, 0.18)',
-                  border: '1px solid rgba(56, 189, 248, 0.4)',
-                  color: '#e0f2fe',
+                  background: item.highlight ? 'linear-gradient(135deg, rgba(234, 88, 12, 0.3) 0%, rgba(249, 115, 22, 0.3) 100%)' : 'rgba(14, 165, 233, 0.18)',
+                  border: item.highlight ? '1px solid #f97316' : '1px solid rgba(56, 189, 248, 0.4)',
+                  color: item.highlight ? '#fed7aa' : '#e0f2fe',
                   padding: '6px 14px',
                   borderRadius: '20px',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+                  boxShadow: item.highlight ? '0 0 10px rgba(249, 115, 22, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.2)'
                 }}
               >
                 {item.label}

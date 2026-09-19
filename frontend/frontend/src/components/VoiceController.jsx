@@ -4,7 +4,7 @@ import { Mic, MicOff, ShieldAlert, CheckCircle, Info, X, Volume2, Square, Lock, 
 import { speakUltron, isUltronSpeaking, stopUltronSpeech, initVoices, getAvailableMaleVoices, setUltronVoice } from '../utils/speechService';
 import { isDeviceOnline, queueOfflineAlert, getCachedContacts } from '../utils/offlineStorage';
 import { startAudioAnalysis, stopAudioAnalysis, isAudioAnalyzerActive } from '../utils/audioAnalyzer';
-import { evaluateEmergencyCodeWords } from '../utils/emergencyDetector';
+import { evaluateEmergencyCodeWords, isUltronWakeWord } from '../utils/emergencyDetector';
 import { triggerNativeCall } from '../utils/dialerService';
 
 export default function VoiceController() {
@@ -21,6 +21,10 @@ export default function VoiceController() {
   const [currentVoiceName, setCurrentVoiceName] = useState('');
   const [micVolume, setMicVolume] = useState(0);
 
+  // 15-Second Two-Stage Arming Protocol State
+  const [isArmed, setIsArmed] = useState(false);
+  const [armedSecondsLeft, setArmedSecondsLeft] = useState(0);
+
   // References to maintain persistent state across lifecycle turns
   const recognitionRef = useRef(null);
   const isListeningRef = useRef(isListening);
@@ -29,6 +33,9 @@ export default function VoiceController() {
   const isTriggeringSosRef = useRef(false);
   const restartTimeoutRef = useRef(null);
   const lastSpeechEndTimeRef = useRef(0);
+  const isArmedRef = useRef(false);
+  const armedTimeoutRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
 
   // Synchronize isListening ref & broadcast
   useEffect(() => {
@@ -69,10 +76,58 @@ export default function VoiceController() {
     };
   }, []);
 
+  // 15-Second Arm & Disarm Handlers
+  const disarmUltron = useCallback((speakFeedback = false) => {
+    setIsArmed(false);
+    isArmedRef.current = false;
+    setArmedSecondsLeft(0);
+    if (armedTimeoutRef.current) clearTimeout(armedTimeoutRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    window.dispatchEvent(new CustomEvent('ultron-armed-state', { detail: { isArmed: false, secondsLeft: 0 } }));
+    if (speakFeedback) {
+      speakUltron("Ultron disarmed. Standing by.");
+    }
+  }, []);
+
+  const armUltron = useCallback((announce = true) => {
+    setIsArmed(true);
+    isArmedRef.current = true;
+    setArmedSecondsLeft(15);
+    window.dispatchEvent(new CustomEvent('ultron-armed-state', { detail: { isArmed: true, secondsLeft: 15 } }));
+
+    if (announce) {
+      speakUltron("Ultron is activated and listening to code words.");
+    }
+
+    if (armedTimeoutRef.current) clearTimeout(armedTimeoutRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+    const expiry = Date.now() + 15000;
+
+    countdownIntervalRef.current = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((expiry - Date.now()) / 1000));
+      setArmedSecondsLeft(remaining);
+      window.dispatchEvent(new CustomEvent('ultron-armed-state', { detail: { isArmed: remaining > 0, secondsLeft: remaining } }));
+      if (remaining <= 0) {
+        clearInterval(countdownIntervalRef.current);
+        setIsArmed(false);
+        isArmedRef.current = false;
+        setArmedSecondsLeft(0);
+      }
+    }, 500);
+
+    armedTimeoutRef.current = setTimeout(() => {
+      disarmUltron(false);
+    }, 15000);
+  }, [disarmUltron]);
+
   // Trigger Emergency SOS Procedure
   const triggerVoiceSOS = useCallback(async (codeWord) => {
     if (isTriggeringSosRef.current) return;
     isTriggeringSosRef.current = true;
+
+    // Reset 15s armed timer upon emergency activation
+    disarmUltron(false);
 
     console.log(`[ULTRON VOICE] 🚨 EMERGENCY CODE WORD TRIGGERED: "${codeWord}"`);
 
@@ -233,17 +288,17 @@ export default function VoiceController() {
 
         const lowerText = activeText.toLowerCase();
 
-        // 1. Wake word only (e.g. "ultron", "hey ultron", "hi ultron") -> Assistant Greeting, NEVER emergency!
+        // 1. Wake word only (e.g. "ultron", "hey ultron", "hi ultron") -> Activates 15-Second Emergency Window!
         if (/^(hey |hi |hello |ok )?ultron$/i.test(lowerText.trim())) {
           if (currentFinal) {
-            speakUltron("Yes, I am online and listening. How can I assist you?");
+            armUltron(true);
           }
           return;
         }
 
         // 2. AI Assistant command (e.g. "Ultron, what is protocol alpha?")
         if (lowerText.startsWith('ultron') || lowerText.startsWith('hey ultron')) {
-          const hasEmergencyKeyword = /\b(help|save|attack|attacking|attacked|danger|police|sos)\b/i.test(lowerText);
+          const hasEmergencyKeyword = /\b(help|save|attack|attacking|attacked|danger|police|ambulance|sos)\b/i.test(lowerText);
           if (!hasEmergencyKeyword) {
             if (currentFinal) {
               const commandIndex = lowerText.indexOf('ultron') + 6;
@@ -251,7 +306,7 @@ export default function VoiceController() {
               if (command.length > 0) {
                 handleAICommand(command);
               } else {
-                speakUltron("Yes, I am online and listening. How can I assist you?");
+                armUltron(true);
               }
             }
             return;
@@ -275,8 +330,16 @@ export default function VoiceController() {
         }
 
         if (sosMatch && sosMatch.matched) {
-          triggerVoiceSOS(sosMatch.codeWord);
-          return;
+          // Check if Ultron is currently armed (within 15s window) OR if user said "Ultron [codeword]" in one breath
+          const isEmergencyPermitted = isArmedRef.current || sosMatch.hasUltronWakeWord || lowerText.includes('ultron');
+
+          if (isEmergencyPermitted) {
+            triggerVoiceSOS(sosMatch.codeWord);
+            return;
+          } else {
+            console.log(`[ULTRON VOICE] 🛡️ Ignored un-armed code word: "${sosMatch.codeWord}". Say "Ultron" first to arm for 15s.`);
+            return;
+          }
         }
       };
 
@@ -361,6 +424,7 @@ export default function VoiceController() {
     setIsListening(false);
     isListeningRef.current = false;
     clearTimeout(restartTimeoutRef.current);
+    disarmUltron(false);
     stopAudioAnalysis();
     setMicVolume(0);
 
@@ -368,7 +432,7 @@ export default function VoiceController() {
       try { recognitionRef.current.abort(); } catch {}
     }
     stopUltronSpeech();
-  }, []);
+  }, [disarmUltron]);
 
   const toggleListen = useCallback(() => {
     if (isListening) {
@@ -397,11 +461,21 @@ export default function VoiceController() {
         setTranscript(e.detail.phrase);
         window.dispatchEvent(new CustomEvent('ultron-voice-transcript', { detail: { transcript: e.detail.phrase } }));
 
+        const rawPhrase = e.detail.phrase.toLowerCase();
         const sosMatch = evaluateEmergencyCodeWords(e.detail.phrase);
-        if (sosMatch && sosMatch.matched) {
-          triggerVoiceSOS(sosMatch.codeWord);
-        } else if (e.detail.phrase.toLowerCase().includes('ultron')) {
-          speakUltron("Yes, I am listening. All safety protocols are active.");
+
+        if (rawPhrase === 'ultron' || rawPhrase === 'hey ultron') {
+          armUltron(true);
+        } else if (sosMatch && sosMatch.matched) {
+          const isPermitted = isArmedRef.current || sosMatch.hasUltronWakeWord || rawPhrase.includes('ultron');
+          if (isPermitted) {
+            triggerVoiceSOS(sosMatch.codeWord);
+          } else {
+            console.log(`[ULTRON VOICE] Ignored un-armed simulated codeword: "${sosMatch.codeWord}"`);
+            speakUltron("Say Ultron first to arm for 15 seconds, or say your emergency command directly with Ultron.");
+          }
+        } else if (rawPhrase.includes('ultron')) {
+          armUltron(true);
         }
       }
     };
@@ -417,12 +491,13 @@ export default function VoiceController() {
       window.removeEventListener('activate-voice', handleExplicitActivate);
       window.removeEventListener('simulate-voice-phrase', handleSimulatedPhrase);
       clearTimeout(restartTimeoutRef.current);
+      disarmUltron(false);
       stopAudioAnalysis();
       if (recognitionRef.current) {
         try { recognitionRef.current.abort(); } catch {}
       }
     };
-  }, [activateVoiceGuard, toggleListen, triggerVoiceSOS]);
+  }, [activateVoiceGuard, toggleListen, triggerVoiceSOS, armUltron, disarmUltron]);
 
   const handleTestVoice = () => {
     speakUltron("ULTRON voice engine is online and calibrated. I am speaking clearly and ready to assist you.");
@@ -451,6 +526,66 @@ export default function VoiceController() {
         }}>
           <AlertTriangle size={20} color="#ffaa00" />
           <span>Speech Recognition requires <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong>. Please use Chrome/Edge for voice activation.</span>
+        </div>
+      )}
+
+      {/* 15-Second Two-Stage Armed Countdown Banner */}
+      {isArmed && !activeAlert && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(135deg, rgba(234, 88, 12, 0.95) 0%, rgba(249, 115, 22, 0.95) 100%)',
+          border: '2px solid rgba(254, 215, 170, 0.9)',
+          color: '#ffffff',
+          padding: '14px 24px',
+          borderRadius: '16px',
+          boxShadow: '0 10px 35px rgba(249, 115, 22, 0.6), inset 0 2px 6px rgba(255, 255, 255, 0.3)',
+          zIndex: 9998,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+          animation: 'pulseRing 1.3s infinite',
+          maxWidth: '90%'
+        }}>
+          <ShieldAlert size={32} color="#ffffff" />
+          <div>
+            <div style={{ fontWeight: 'bold', fontSize: '15px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🛡️ ULTRON ARMED</span>
+              <span style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.35)',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                fontSize: '12px',
+                fontFamily: 'monospace',
+                border: '1px solid rgba(255, 255, 255, 0.3)'
+              }}>
+                {armedSecondsLeft}s remaining
+              </span>
+            </div>
+            <div style={{ fontSize: '12px', opacity: 0.95, marginTop: '3px' }}>
+              Listening for emergency command: <em>"Help"</em>, <em>"Call the police"</em>, or <em>"Call an ambulance"</em>
+            </div>
+          </div>
+          <button 
+            onClick={() => disarmUltron(true)}
+            title="Cancel / Disarm Ultron"
+            style={{
+              background: 'rgba(255,255,255,0.22)',
+              border: '1px solid rgba(255,255,255,0.4)',
+              borderRadius: '8px',
+              padding: '6px 12px',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              marginLeft: '8px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Disarm
+          </button>
         </div>
       )}
 
@@ -695,20 +830,22 @@ export default function VoiceController() {
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: permissionError ? '#ffaa00' : isSpeaking ? '#00e676' : isListening ? '#00d2ff' : '#888',
-              boxShadow: isSpeaking ? '0 0 10px #00e676' : isListening && !permissionError ? '0 0 10px #00d2ff' : 'none',
-              animation: isSpeaking || (isListening && micVolume > 15) ? 'pulseRing 1s infinite' : 'none'
+              backgroundColor: permissionError ? '#ffaa00' : isArmed ? '#f97316' : isSpeaking ? '#00e676' : isListening ? '#00d2ff' : '#888',
+              boxShadow: isArmed ? '0 0 12px #f97316' : isSpeaking ? '0 0 10px #00e676' : isListening && !permissionError ? '0 0 10px #00d2ff' : 'none',
+              animation: isArmed || isSpeaking || (isListening && micVolume > 15) ? 'pulseRing 1s infinite' : 'none'
             }} />
-            <span style={{ fontSize: '12px', fontWeight: '600', color: isSpeaking ? '#00e676' : isListening ? '#ffffff' : '#888', letterSpacing: '0.3px' }}>
+            <span style={{ fontSize: '12px', fontWeight: '600', color: isArmed ? '#fb923c' : isSpeaking ? '#00e676' : isListening ? '#ffffff' : '#888', letterSpacing: '0.3px' }}>
               {permissionError 
                 ? 'Mic Blocked (Click to Allow)' 
                 : networkError
                   ? 'Local Guard (Net Error)'
-                  : isSpeaking 
-                    ? 'ULTRON Speaking...' 
-                    : isListening 
-                      ? (isProcessing ? 'Thinking...' : 'Voice Guard: Active') 
-                      : 'Voice Muted (Click Mic)'}
+                  : isArmed
+                    ? `ARMED (${armedSecondsLeft}s)`
+                    : isSpeaking 
+                      ? 'ULTRON Speaking...' 
+                      : isListening 
+                        ? (isProcessing ? 'Thinking...' : 'Voice Guard: Active') 
+                        : 'Voice Muted (Click Mic)'}
             </span>
           </div>
 
@@ -718,7 +855,7 @@ export default function VoiceController() {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             fontSize: '11px',
-            color: isListening ? 'rgba(226, 232, 240, 0.85)' : '#666',
+            color: isArmed ? '#fed7aa' : isListening ? 'rgba(226, 232, 240, 0.85)' : '#666',
             marginTop: '2px',
             fontStyle: transcript ? 'italic' : 'normal'
           }}>
@@ -728,9 +865,11 @@ export default function VoiceController() {
                 ? 'Voice output active'
                 : transcript 
                   ? `"${transcript}"` 
-                  : isListening 
-                    ? (micVolume > 10 ? `Hearing audio (${micVolume}%)...` : 'Listening for code words...') 
-                    : 'Click mic to activate'}
+                  : isArmed
+                    ? `Listening for emergency commands...`
+                    : isListening 
+                      ? (micVolume > 10 ? `Hearing audio (${micVolume}%)...` : 'Say "Ultron" to arm for 15s') 
+                      : 'Click mic to activate'}
           </div>
         </div>
 

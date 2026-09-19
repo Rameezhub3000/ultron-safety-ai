@@ -2,6 +2,16 @@
 // Evaluates transcripts for critical emergency triggers:
 // "help me", "save me", "someone is attacking", "help", "sos", "call police", etc.
 
+export function isUltronWakeWord(rawText) {
+  if (!rawText || typeof rawText !== 'string') return false;
+  const normalized = rawText
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return /^(hey |hi |hello |ok )?ultron$/i.test(normalized) || /\bultron\b/i.test(normalized);
+}
+
 export function evaluateEmergencyCodeWords(rawText) {
   if (!rawText || typeof rawText !== 'string') return null;
 
@@ -18,6 +28,8 @@ export function evaluateEmergencyCodeWords(rawText) {
   if (/^(hey |hi |hello |ok )?ultron$/i.test(normalized)) {
     return null;
   }
+
+  const hasUltronWakeWord = /\bultron\b/i.test(normalized);
 
   // 1. High-priority exact & multi-word phrase patterns
   const priorityPhrases = [
@@ -94,41 +106,41 @@ export function evaluateEmergencyCodeWords(rawText) {
 
   for (const item of priorityPhrases) {
     if (normalized.includes(item.phrase)) {
-      return { matched: true, codeWord: item.label, source: rawText };
+      return { matched: true, codeWord: item.label, source: rawText, hasUltronWakeWord };
     }
   }
 
   // 2. Standalone word boundaries for critical single code words
   if (/\bhelp\b/i.test(normalized)) {
-    return { matched: true, codeWord: 'help', source: rawText };
+    return { matched: true, codeWord: 'help', source: rawText, hasUltronWakeWord };
   }
 
   if (/\bsave\b/i.test(normalized)) {
-    return { matched: true, codeWord: 'save me', source: rawText };
+    return { matched: true, codeWord: 'save me', source: rawText, hasUltronWakeWord };
   }
 
   if (/\b(attack|attacking|attacked)\b/i.test(normalized)) {
-    return { matched: true, codeWord: 'someone is attacking', source: rawText };
+    return { matched: true, codeWord: 'someone is attacking', source: rawText, hasUltronWakeWord };
   }
 
   if (/\bsos\b/i.test(normalized)) {
-    return { matched: true, codeWord: 'sos', source: rawText };
+    return { matched: true, codeWord: 'sos', source: rawText, hasUltronWakeWord };
   }
 
   if (/\bemergency\b/i.test(normalized)) {
-    return { matched: true, codeWord: 'emergency', source: rawText };
+    return { matched: true, codeWord: 'emergency', source: rawText, hasUltronWakeWord };
   }
 
   if (/\bpolice\b/i.test(normalized)) {
-    return { matched: true, codeWord: 'call the police', source: rawText };
+    return { matched: true, codeWord: 'call the police', source: rawText, hasUltronWakeWord };
   }
 
   if (/\bambulance\b/i.test(normalized)) {
-    return { matched: true, codeWord: 'call an ambulance', source: rawText };
+    return { matched: true, codeWord: 'call an ambulance', source: rawText, hasUltronWakeWord };
   }
 
   if (/\bdanger\b/i.test(normalized)) {
-    return { matched: true, codeWord: 'i am in danger', source: rawText };
+    return { matched: true, codeWord: 'i am in danger', source: rawText, hasUltronWakeWord };
   }
 
   return null;
