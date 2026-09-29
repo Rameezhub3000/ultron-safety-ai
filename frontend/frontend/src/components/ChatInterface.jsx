@@ -30,10 +30,6 @@ export default function ChatInterface() {
       const res = await axios.post('http://localhost:5000/api/ai/chat', { message: userMessage.content });
       const aiReply = res.data.reply;
       setMessages(prev => [...prev, { role: 'ai', content: aiReply }]);
-      
-      // Voice Feedback for AI Reply with high quality natural voice
-      speakUltron(aiReply);
-
     } catch (error) {
       console.error(error);
       setMessages(prev => [...prev, { role: 'ai', content: 'Sorry, I am having trouble connecting to my servers right now.' }]);
