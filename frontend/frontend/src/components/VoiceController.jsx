@@ -96,7 +96,7 @@ export default function VoiceController() {
     window.dispatchEvent(new CustomEvent('ultron-armed-state', { detail: { isArmed: true, secondsLeft: 15 } }));
 
     if (announce) {
-      speakUltron("Ultron is activated and listening to code words.");
+      speakUltron("Ultron is activated. I am here to save you.");
     }
 
     if (armedTimeoutRef.current) clearTimeout(armedTimeoutRef.current);
@@ -181,37 +181,37 @@ export default function VoiceController() {
     // 2. Online Mode: Real-time Live Location, Nodemailer Emails & Direct Phone Call
     speakUltron(spokenAlert);
 
-    // Immediately launch native phone dialer with target phone or primary emergency contact
-    triggerNativeCall(targetPhone);
-
-    const sendAlert = async (locationCoords) => {
+    const sendAlertAndDial = async (locationCoords) => {
       try {
         await axios.post('http://localhost:5000/api/alerts', {
           type: `VOICE_SOS [${codeWord.toUpperCase()}]`,
           location: locationCoords
         });
-        console.log(`[ULTRON VOICE] ✅ SOS alert posted. Live location dispatched to contacts.`);
+        console.log(`[ULTRON VOICE] ✅ SOS alert posted with live GPS location dispatched to contacts.`);
       } catch (err) {
         console.error("[ULTRON VOICE] SOS Dispatch API error:", err);
         queueOfflineAlert({
           type: `VOICE_SOS [${codeWord.toUpperCase()}]`,
           location: locationCoords
         });
+      } finally {
+        // Direct cellular dial via device native dialer paired with location alert dispatch
+        triggerNativeCall(targetPhone);
       }
     };
 
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          sendAlert({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          sendAlertAndDial({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         },
         () => {
-          sendAlert(null);
+          sendAlertAndDial(null);
         },
-        { timeout: 3000, enableHighAccuracy: true }
+        { timeout: 3500, enableHighAccuracy: true }
       );
     } else {
-      sendAlert(null);
+      sendAlertAndDial(null);
     }
 
     // Cooldown release after 8 seconds
