@@ -101,7 +101,14 @@ export function evaluateEmergencyCodeWords(rawText) {
     { phrase: 'send emergency alert', label: 'emergency' },
     { phrase: 'send alert', label: 'emergency' },
     { phrase: 'emergency alert', label: 'emergency' },
-    { phrase: 'emergency sos', label: 'sos' }
+    { phrase: 'emergency sos', label: 'sos' },
+
+    // Low-energy / Choked / Soft utterance variations
+    { phrase: 'pls help', label: 'help' },
+    { phrase: 'cant breathe', label: 'emergency' },
+    { phrase: 'choking', label: 'call an ambulance' },
+    { phrase: 'hurt', label: 'emergency' },
+    { phrase: 'stuck', label: 'emergency' }
   ];
 
   for (const item of priorityPhrases) {

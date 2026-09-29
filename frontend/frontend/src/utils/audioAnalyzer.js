@@ -28,12 +28,14 @@ export async function startAudioAnalysis(onVolumeChange, onFrequencyData) {
       return false;
     }
 
-    // Request actual microphone stream
+    // Request microphone with high-gain processing for quiet/low-pitch voices
     microphoneStream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true
+        autoGainControl: true,
+        channelCount: 1,
+        sampleRate: 48000
       } 
     });
 
@@ -46,7 +48,7 @@ export async function startAudioAnalysis(onVolumeChange, onFrequencyData) {
     sourceNode = audioContext.createMediaStreamSource(microphoneStream);
     analyserNode = audioContext.createAnalyser();
     analyserNode.fftSize = 256;
-    analyserNode.smoothingTimeConstant = 0.8;
+    analyserNode.smoothingTimeConstant = 0.7; // Faster response to soft vocal bursts
 
     sourceNode.connect(analyserNode);
     isAnalyzing = true;
@@ -59,14 +61,16 @@ export async function startAudioAnalysis(onVolumeChange, onFrequencyData) {
 
       analyserNode.getByteFrequencyData(dataArray);
 
-      // Compute average volume (0 to 100)
+      // Compute volume with sensitivity boost for low frequencies (male/deep/quiet voices: 80Hz - 300Hz)
       let sum = 0;
       for (let i = 0; i < bufferLength; i++) {
-        sum += dataArray[i];
+        // Apply 1.5x gain multiplier to low-frequency speech bins (bins 1-12)
+        const weight = (i <= 12) ? 1.6 : 1.0;
+        sum += dataArray[i] * weight;
       }
       const average = sum / bufferLength;
-      // Scale 0-128 to 0-100%
-      const volumeLevel = Math.min(100, Math.round((average / 128) * 100));
+      // High-sensitivity scaling: amplifies quiet & low-pitch speech into visible 0-100% telemetry
+      const volumeLevel = Math.min(100, Math.round((average / 85) * 100));
 
       if (onVolumeChange) {
         onVolumeChange(volumeLevel);
