@@ -355,14 +355,14 @@ export default function Dashboard() {
                 title={`Simulate saying "${item.phrase}"`}
                 style={{
                   fontSize: '12px',
-                  background: item.highlight ? 'linear-gradient(135deg, rgba(234, 88, 12, 0.3) 0%, rgba(249, 115, 22, 0.3) 100%)' : 'rgba(14, 165, 233, 0.18)',
-                  border: item.highlight ? '1px solid #f97316' : '1px solid rgba(56, 189, 248, 0.4)',
-                  color: item.highlight ? '#fed7aa' : '#e0f2fe',
+                  background: item.highlight ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.35) 0%, rgba(0, 210, 255, 0.25) 100%)' : 'rgba(14, 165, 233, 0.18)',
+                  border: item.highlight ? '1px solid #00d2ff' : '1px solid rgba(56, 189, 248, 0.4)',
+                  color: item.highlight ? '#e0f2fe' : '#e0f2fe',
                   padding: '6px 14px',
                   borderRadius: '20px',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  boxShadow: item.highlight ? '0 0 10px rgba(249, 115, 22, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.2)'
+                  boxShadow: item.highlight ? '0 0 12px rgba(0, 210, 255, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.2)'
                 }}
               >
                 {item.label}

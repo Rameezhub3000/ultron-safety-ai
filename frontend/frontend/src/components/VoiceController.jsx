@@ -536,35 +536,36 @@ export default function VoiceController() {
           top: '20px',
           left: '50%',
           transform: 'translateX(-50%)',
-          background: 'linear-gradient(135deg, rgba(234, 88, 12, 0.95) 0%, rgba(249, 115, 22, 0.95) 100%)',
-          border: '2px solid rgba(254, 215, 170, 0.9)',
+          background: 'linear-gradient(135deg, rgba(8, 19, 41, 0.96) 0%, rgba(2, 132, 199, 0.95) 100%)',
+          border: '2px solid rgba(0, 210, 255, 0.8)',
           color: '#ffffff',
           padding: '14px 24px',
           borderRadius: '16px',
-          boxShadow: '0 10px 35px rgba(249, 115, 22, 0.6), inset 0 2px 6px rgba(255, 255, 255, 0.3)',
+          boxShadow: '0 10px 35px rgba(0, 210, 255, 0.5), inset 0 2px 8px rgba(255, 255, 255, 0.3)',
           zIndex: 9998,
           display: 'flex',
           alignItems: 'center',
           gap: '14px',
-          animation: 'pulseRing 1.3s infinite',
+          animation: 'pulseRing 1.5s infinite',
           maxWidth: '90%'
         }}>
-          <ShieldAlert size={32} color="#ffffff" />
+          <ShieldAlert size={32} color="#00d2ff" />
           <div>
             <div style={{ fontWeight: 'bold', fontSize: '15px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🛡️ ULTRON ARMED</span>
+              <span style={{ color: '#00d2ff' }}>🛡️ ULTRON ARMED</span>
               <span style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.35)',
+                backgroundColor: 'rgba(0, 210, 255, 0.2)',
+                color: '#e0f2fe',
                 padding: '2px 8px',
                 borderRadius: '10px',
                 fontSize: '12px',
                 fontFamily: 'monospace',
-                border: '1px solid rgba(255, 255, 255, 0.3)'
+                border: '1px solid rgba(0, 210, 255, 0.5)'
               }}>
                 {armedSecondsLeft}s remaining
               </span>
             </div>
-            <div style={{ fontSize: '12px', opacity: 0.95, marginTop: '3px' }}>
+            <div style={{ fontSize: '12px', opacity: 0.95, marginTop: '3px', color: '#e0f2fe' }}>
               Listening for emergency command: <em>"Help"</em>, <em>"Call the police"</em>, or <em>"Call an ambulance"</em>
             </div>
           </div>
@@ -572,8 +573,8 @@ export default function VoiceController() {
             onClick={() => disarmUltron(true)}
             title="Cancel / Disarm Ultron"
             style={{
-              background: 'rgba(255,255,255,0.22)',
-              border: '1px solid rgba(255,255,255,0.4)',
+              background: 'rgba(255, 255, 255, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.5)',
               borderRadius: '8px',
               padding: '6px 12px',
               color: '#ffffff',
@@ -830,11 +831,11 @@ export default function VoiceController() {
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: permissionError ? '#ffaa00' : isArmed ? '#f97316' : isSpeaking ? '#00e676' : isListening ? '#00d2ff' : '#888',
-              boxShadow: isArmed ? '0 0 12px #f97316' : isSpeaking ? '0 0 10px #00e676' : isListening && !permissionError ? '0 0 10px #00d2ff' : 'none',
+              backgroundColor: permissionError ? '#ffaa00' : isArmed ? '#00d2ff' : isSpeaking ? '#00e676' : isListening ? '#00d2ff' : '#888',
+              boxShadow: isArmed ? '0 0 12px #00d2ff' : isSpeaking ? '0 0 10px #00e676' : isListening && !permissionError ? '0 0 10px #00d2ff' : 'none',
               animation: isArmed || isSpeaking || (isListening && micVolume > 15) ? 'pulseRing 1s infinite' : 'none'
             }} />
-            <span style={{ fontSize: '12px', fontWeight: '600', color: isArmed ? '#fb923c' : isSpeaking ? '#00e676' : isListening ? '#ffffff' : '#888', letterSpacing: '0.3px' }}>
+            <span style={{ fontSize: '12px', fontWeight: '600', color: isArmed ? '#00d2ff' : isSpeaking ? '#00e676' : isListening ? '#ffffff' : '#888', letterSpacing: '0.3px' }}>
               {permissionError 
                 ? 'Mic Blocked (Click to Allow)' 
                 : networkError
@@ -855,7 +856,7 @@ export default function VoiceController() {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             fontSize: '11px',
-            color: isArmed ? '#fed7aa' : isListening ? 'rgba(226, 232, 240, 0.85)' : '#666',
+            color: isArmed ? '#e0f2fe' : isListening ? 'rgba(226, 232, 240, 0.85)' : '#666',
             marginTop: '2px',
             fontStyle: transcript ? 'italic' : 'normal'
           }}>
