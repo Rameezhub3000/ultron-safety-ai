@@ -3,12 +3,18 @@ import axios from 'axios';
 import { ShieldCheck, Lock, EyeOff, Key, RefreshCw, Trash2, CheckCircle2, Cpu, PhoneCall, AlertTriangle, Check } from 'lucide-react';
 import { getKeyFingerprint, encryptData, decryptData, purgeLocalEncryptionData, getOrCreateMasterKey } from '../utils/cryptoService';
 
+import { getSecurityPins, saveSecurityPins } from '../utils/offlineStorage';
+
 export default function PrivacyShield() {
   const [fingerprint, setFingerprint] = useState('Loading...');
   const [testInput, setTestInput] = useState('My secret location or emergency note');
   const [encryptedOutput, setEncryptedOutput] = useState(null);
   const [decryptedOutput, setDecryptedOutput] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
+
+  // Custom Security PIN Management State
+  const [customPins, setCustomPins] = useState({ disarmPin: '', duressPin: '' });
+  const [pinSaveMsg, setPinSaveMsg] = useState('');
 
   // Twilio Connection State
   const [twilioStatus, setTwilioStatus] = useState({ configured: false, accountSidMasked: null, phoneNumber: null });
@@ -20,7 +26,33 @@ export default function PrivacyShield() {
   useEffect(() => {
     loadKeyData();
     fetchTwilioStatus();
+    loadCustomPins();
   }, []);
+
+  const loadCustomPins = () => {
+    const pins = getSecurityPins();
+    setCustomPins(pins);
+  };
+
+  const handleSaveCustomPins = (e) => {
+    e.preventDefault();
+    if (!customPins.disarmPin || customPins.disarmPin.length !== 4) {
+      setPinSaveMsg('❌ Disarm PIN must be exactly 4 digits.');
+      return;
+    }
+    if (!customPins.duressPin || customPins.duressPin.length !== 4) {
+      setPinSaveMsg('❌ Duress PIN must be exactly 4 digits.');
+      return;
+    }
+    if (customPins.disarmPin === customPins.duressPin) {
+      setPinSaveMsg('❌ Disarm PIN and Duress PIN cannot be identical.');
+      return;
+    }
+
+    saveSecurityPins(customPins.disarmPin, customPins.duressPin);
+    setPinSaveMsg('✅ Custom Security PINs saved successfully!');
+    setTimeout(() => setPinSaveMsg(''), 4000);
+  };
 
   const fetchTwilioStatus = async () => {
     try {
@@ -117,6 +149,69 @@ export default function PrivacyShield() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Custom Security PIN Management */}
+      <div className="card" style={{ borderLeft: '4px solid #00d2ff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+          <Key size={28} color="#00d2ff" />
+          <h3 style={{ margin: 0, color: '#ffffff' }}>Custom Security PIN Configuration</h3>
+        </div>
+        <p style={{ color: 'rgba(226, 232, 240, 0.85)', fontSize: '14px', lineHeight: '1.6' }}>
+          Set your unique 4-digit <strong>Disarm PIN</strong> and <strong>Stealth Duress PIN</strong>.
+          The Duress PIN acts as a secret trigger that pretends to disarm the system while silently dispatching high-priority emergency alerts.
+        </p>
+
+        <form onSubmit={handleSaveCustomPins} style={{ background: 'rgba(6, 14, 30, 0.7)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ fontSize: '13px', color: '#38bdf8', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>
+                🔓 Disarm PIN (Normal):
+              </label>
+              <input 
+                type="text" 
+                maxLength={4} 
+                placeholder="e.g. 1234" 
+                value={customPins.disarmPin} 
+                onChange={(e) => setCustomPins({ ...customPins, disarmPin: e.target.value })} 
+                required 
+                style={{ margin: 0, fontFamily: 'monospace', fontSize: '16px', textAlign: 'center', letterSpacing: '4px' }}
+              />
+              <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
+                Disarms ULTRON safety monitoring normally.
+              </span>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '13px', color: '#f87171', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>
+                🚨 Stealth Duress PIN (Fake Disarm):
+              </label>
+              <input 
+                type="text" 
+                maxLength={4} 
+                placeholder="e.g. 9999" 
+                value={customPins.duressPin} 
+                onChange={(e) => setCustomPins({ ...customPins, duressPin: e.target.value })} 
+                required 
+                style={{ margin: 0, fontFamily: 'monospace', fontSize: '16px', textAlign: 'center', letterSpacing: '4px' }}
+              />
+              <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
+                Shows fake disarm screen + secretly dispatches GPS alerts & calls.
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <button type="submit" style={{ background: 'linear-gradient(135deg, #0284c7 0%, #00d2ff 100%)', border: 'none', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0, 210, 255, 0.35)' }}>
+              Save Custom Security PINs
+            </button>
+            {pinSaveMsg && (
+              <span style={{ fontSize: '13px', color: pinSaveMsg.startsWith('✅') ? '#38bdf8' : '#f87171', fontWeight: '500' }}>
+                {pinSaveMsg}
+              </span>
+            )}
+          </div>
+        </form>
       </div>
 
       {/* 2. AES-256-GCM End-to-End Cryptography */}

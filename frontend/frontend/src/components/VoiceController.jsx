@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { Mic, MicOff, ShieldAlert, CheckCircle, Info, X, Volume2, Square, Lock, AlertTriangle, Radio } from 'lucide-react';
 import { speakUltron, isUltronSpeaking, stopUltronSpeech, initVoices, getAvailableMaleVoices, setUltronVoice } from '../utils/speechService';
-import { isDeviceOnline, queueOfflineAlert, getCachedContacts } from '../utils/offlineStorage';
+import { isDeviceOnline, queueOfflineAlert, getCachedContacts, getSecurityPins } from '../utils/offlineStorage';
 import { startAudioAnalysis, stopAudioAnalysis, isAudioAnalyzerActive } from '../utils/audioAnalyzer';
 import { evaluateEmergencyCodeWords, isUltronWakeWord } from '../utils/emergencyDetector';
 import { triggerNativeCall } from '../utils/dialerService';
@@ -271,16 +271,19 @@ export default function VoiceController() {
     e.preventDefault();
     if (!enteredPin) return;
 
-    if (enteredPin === '1234') {
+    const { disarmPin, duressPin } = getSecurityPins();
+    const cleanEntered = String(enteredPin).trim();
+
+    if (cleanEntered === disarmPin) {
       // Normal disarm
       setShowPinModal(false);
       disarmUltron(true);
-    } else if (enteredPin === '9999') {
+    } else if (cleanEntered === duressPin) {
       // Stealth Duress Fake Disarm
       setShowPinModal(false);
       triggerStealthDuressSOS();
     } else {
-      setPinError('Invalid PIN code. Try 1234 (Disarm) or 9999 (Duress Test)');
+      setPinError('Incorrect Security PIN. Please try again.');
     }
   }, [enteredPin, disarmUltron, triggerStealthDuressSOS]);
 
@@ -760,21 +763,6 @@ export default function VoiceController() {
                   {pinError}
                 </div>
               )}
-
-              <div style={{
-                background: 'rgba(0, 210, 255, 0.08)',
-                border: '1px solid rgba(0, 210, 255, 0.2)',
-                borderRadius: '8px',
-                padding: '10px',
-                marginBottom: '16px',
-                fontSize: '11px',
-                color: '#38bdf8',
-                lineHeight: '1.4'
-              }}>
-                🔒 <strong>PIN Codes:</strong><br />
-                • Disarm PIN: <code>1234</code> (Disarms system)<br />
-                • Duress PIN: <code>9999</code> (Fake disarm + Secret SOS)
-              </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button

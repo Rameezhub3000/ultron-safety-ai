@@ -1,8 +1,30 @@
 // ULTRON Offline Persistence & Auto-Sync Engine
 import axios from 'axios';
 
-const CONTACTS_CACHE_KEY = 'ultron_cached_contacts';
-const OFFLINE_ALERTS_QUEUE_KEY = 'ultron_offline_alerts_queue';
+const DISARM_PIN_KEY = 'ultron_disarm_pin';
+const DURESS_PIN_KEY = 'ultron_duress_pin';
+
+export function getSecurityPins() {
+  try {
+    const disarmPin = localStorage.getItem(DISARM_PIN_KEY) || '1234';
+    const duressPin = localStorage.getItem(DURESS_PIN_KEY) || '9999';
+    return { disarmPin, duressPin };
+  } catch (err) {
+    return { disarmPin: '1234', duressPin: '9999' };
+  }
+}
+
+export function saveSecurityPins(disarmPin, duressPin) {
+  try {
+    if (disarmPin) localStorage.setItem(DISARM_PIN_KEY, String(disarmPin).trim());
+    if (duressPin) localStorage.setItem(DURESS_PIN_KEY, String(duressPin).trim());
+    window.dispatchEvent(new CustomEvent('ultron-pins-updated'));
+    return true;
+  } catch (err) {
+    console.warn('[OFFLINE STORAGE] Failed to save PINs:', err);
+    return false;
+  }
+}
 
 // Check if device currently has internet access
 export function isDeviceOnline() {
