@@ -25,6 +25,12 @@ export default function VoiceController() {
   const [isArmed, setIsArmed] = useState(false);
   const [armedSecondsLeft, setArmedSecondsLeft] = useState(0);
 
+  // Stealth Duress Security PIN State
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [enteredPin, setEnteredPin] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [duressTriggered, setDuressTriggered] = useState(false);
+
   // References to maintain persistent state across lifecycle turns
   const recognitionRef = useRef(null);
   const isListeningRef = useRef(isListening);
@@ -87,6 +93,12 @@ export default function VoiceController() {
     if (speakFeedback) {
       speakUltron("Ultron disarmed. Standing by.");
     }
+  }, []);
+
+  const handleDisarmRequest = useCallback(() => {
+    setShowPinModal(true);
+    setEnteredPin('');
+    setPinError('');
   }, []);
 
   const armUltron = useCallback((announce = true) => {
@@ -218,7 +230,59 @@ export default function VoiceController() {
     setTimeout(() => {
       isTriggeringSosRef.current = false;
     }, 8000);
-  }, []);
+  }, [disarmUltron]);
+
+  // Stealth Duress Silent Emergency Dispatch (Fake Disarm Trigger)
+  const triggerStealthDuressSOS = useCallback(() => {
+    console.log(`[ULTRON DURESS] 🚨 STEALTH DURESS PIN ENTERED: Secretly dispatching silent SOS & live location!`);
+    
+    // Disarm system visually to fool attacker
+    disarmUltron(false);
+    setDuressTriggered(true);
+    setTimeout(() => setDuressTriggered(false), 6000);
+
+    const sendSilentAlert = async (locationCoords) => {
+      try {
+        await axios.post('http://localhost:5000/api/alerts', {
+          type: 'SILENT_DURESS_SOS [ATTACKER DURESS PIN]',
+          location: locationCoords
+        });
+        console.log(`[ULTRON DURESS] ✅ Silent duress GPS alert dispatched to emergency contacts.`);
+      } catch (err) {
+        console.error("[ULTRON DURESS] Silent alert error:", err);
+      } finally {
+        triggerNativeCall();
+      }
+    };
+
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => sendSilentAlert({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => sendSilentAlert(null),
+        { timeout: 3000, enableHighAccuracy: true }
+      );
+    } else {
+      sendSilentAlert(null);
+    }
+  }, [disarmUltron]);
+
+  // PIN Verification submit handler
+  const handlePinSubmit = useCallback((e) => {
+    e.preventDefault();
+    if (!enteredPin) return;
+
+    if (enteredPin === '1234') {
+      // Normal disarm
+      setShowPinModal(false);
+      disarmUltron(true);
+    } else if (enteredPin === '9999') {
+      // Stealth Duress Fake Disarm
+      setShowPinModal(false);
+      triggerStealthDuressSOS();
+    } else {
+      setPinError('Invalid PIN code. Try 1234 (Disarm) or 9999 (Duress Test)');
+    }
+  }, [enteredPin, disarmUltron, triggerStealthDuressSOS]);
 
   // AI command handler for non-emergency inquiries
   const handleAICommand = useCallback(async (command) => {
@@ -570,8 +634,8 @@ export default function VoiceController() {
             </div>
           </div>
           <button 
-            onClick={() => disarmUltron(true)}
-            title="Cancel / Disarm Ultron"
+            onClick={handleDisarmRequest}
+            title="Cancel / Disarm Ultron (Requires PIN)"
             style={{
               background: 'rgba(255, 255, 255, 0.15)',
               border: '1px solid rgba(56, 189, 248, 0.5)',
@@ -587,6 +651,168 @@ export default function VoiceController() {
           >
             Disarm
           </button>
+        </div>
+      )}
+
+      {/* Stealth Duress Fake Disarm Success Toast */}
+      {duressTriggered && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#064e3b',
+          border: '2px solid #10b981',
+          color: '#ecfdf5',
+          padding: '14px 28px',
+          borderRadius: '16px',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 10px 30px rgba(16, 185, 129, 0.4)',
+          fontSize: '14px',
+          fontWeight: '600'
+        }}>
+          <CheckCircle size={24} color="#34d399" />
+          <div>
+            <div>System Disarmed & Deactivated</div>
+            <div style={{ fontSize: '11px', opacity: 0.8, fontWeight: 'normal' }}>
+              All safety monitoring has been safely shut down.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stealth Duress Security PIN Verification Modal */}
+      {showPinModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.85)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#0b192e',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            borderRadius: '20px',
+            padding: '28px',
+            width: '100%',
+            maxWidth: '380px',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(0, 210, 255, 0.2)',
+            color: '#ffffff',
+            position: 'relative'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Lock size={22} color="#00d2ff" />
+                <h3 style={{ margin: 0, fontSize: '17px', color: '#00d2ff' }}>Security PIN Verification</h3>
+              </div>
+              <button 
+                onClick={() => setShowPinModal(false)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 16px 0', lineHeight: '1.5' }}>
+              Enter security PIN to disarm ULTRON safety monitoring:
+            </p>
+
+            <form onSubmit={handlePinSubmit}>
+              <input 
+                type="password"
+                maxLength={4}
+                autoFocus
+                placeholder="Enter 4-digit PIN"
+                value={enteredPin}
+                onChange={(e) => {
+                  setEnteredPin(e.target.value);
+                  setPinError('');
+                }}
+                style={{
+                  width: '100%',
+                  background: 'rgba(6, 14, 30, 0.8)',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  color: '#ffffff',
+                  fontSize: '18px',
+                  letterSpacing: '6px',
+                  textAlign: 'center',
+                  marginBottom: '10px',
+                  outline: 'none'
+                }}
+              />
+
+              {pinError && (
+                <div style={{ color: '#f87171', fontSize: '12px', marginBottom: '12px', textAlign: 'center' }}>
+                  {pinError}
+                </div>
+              )}
+
+              <div style={{
+                background: 'rgba(0, 210, 255, 0.08)',
+                border: '1px solid rgba(0, 210, 255, 0.2)',
+                borderRadius: '8px',
+                padding: '10px',
+                marginBottom: '16px',
+                fontSize: '11px',
+                color: '#38bdf8',
+                lineHeight: '1.4'
+              }}>
+                🔒 <strong>PIN Codes:</strong><br />
+                • Disarm PIN: <code>1234</code> (Disarms system)<br />
+                • Duress PIN: <code>9999</code> (Fake disarm + Secret SOS)
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPinModal(false)}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '10px',
+                    padding: '10px',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(135deg, #0284c7 0%, #00d2ff 100%)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '10px',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(0, 210, 255, 0.4)'
+                  }}
+                >
+                  Confirm PIN
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
