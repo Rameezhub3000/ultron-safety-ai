@@ -3,7 +3,7 @@ import axios from 'axios';
 import { ShieldCheck, Lock, EyeOff, Key, RefreshCw, Trash2, CheckCircle2, Cpu, PhoneCall, AlertTriangle, Check } from 'lucide-react';
 import { getKeyFingerprint, encryptData, decryptData, purgeLocalEncryptionData, getOrCreateMasterKey } from '../utils/cryptoService';
 
-import { getSecurityPins, saveSecurityPins } from '../utils/offlineStorage';
+import { getSecurityPins, saveSecurityPins, getPrivacyPassword, savePrivacyPassword } from '../utils/offlineStorage';
 
 export default function PrivacyShield() {
   const [fingerprint, setFingerprint] = useState('Loading...');
@@ -16,6 +16,11 @@ export default function PrivacyShield() {
   const [customPins, setCustomPins] = useState({ disarmPin: '', duressPin: '' });
   const [pinSaveMsg, setPinSaveMsg] = useState('');
 
+  // Privacy Tab Access Password Management State
+  const [currentPrivacyPassword, setCurrentPrivacyPassword] = useState('RAMEEZ');
+  const [newPrivacyPassword, setNewPrivacyPassword] = useState('');
+  const [passwordSaveMsg, setPasswordSaveMsg] = useState('');
+
   // Twilio Connection State
   const [twilioStatus, setTwilioStatus] = useState({ configured: false, accountSidMasked: null, phoneNumber: null });
   const [twilioForm, setTwilioForm] = useState({ accountSid: '', authToken: '', phoneNumber: '' });
@@ -27,7 +32,25 @@ export default function PrivacyShield() {
     loadKeyData();
     fetchTwilioStatus();
     loadCustomPins();
+    loadPrivacyPassword();
   }, []);
+
+  const loadPrivacyPassword = () => {
+    setCurrentPrivacyPassword(getPrivacyPassword());
+  };
+
+  const handleSavePassword = (e) => {
+    e.preventDefault();
+    if (!newPrivacyPassword || newPrivacyPassword.trim() === '') {
+      setPasswordSaveMsg('❌ Password cannot be empty.');
+      return;
+    }
+    savePrivacyPassword(newPrivacyPassword.trim());
+    setCurrentPrivacyPassword(newPrivacyPassword.trim());
+    setNewPrivacyPassword('');
+    setPasswordSaveMsg('✅ Privacy Tab Password updated successfully!');
+    setTimeout(() => setPasswordSaveMsg(''), 4000);
+  };
 
   const loadCustomPins = () => {
     const pins = getSecurityPins();
@@ -208,6 +231,51 @@ export default function PrivacyShield() {
             {pinSaveMsg && (
               <span style={{ fontSize: '13px', color: pinSaveMsg.startsWith('✅') ? '#38bdf8' : '#f87171', fontWeight: '500' }}>
                 {pinSaveMsg}
+              </span>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* Privacy Tab Access Password Settings */}
+      <div className="card" style={{ borderLeft: '4px solid #38bdf8' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+          <Lock size={28} color="#38bdf8" />
+          <h3 style={{ margin: 0, color: '#ffffff' }}>Privacy & Security Tab Password Protection</h3>
+        </div>
+        <p style={{ color: 'rgba(226, 232, 240, 0.85)', fontSize: '14px', lineHeight: '1.6' }}>
+          Protect your security settings, encryption keys, and Twilio credentials from strangers. Anyone opening the <strong>Privacy & Security</strong> tab must enter your unique master password.
+        </p>
+
+        <form onSubmit={handleSavePassword} style={{ background: 'rgba(6, 14, 30, 0.7)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Active Master Password:</label>
+              <div style={{ fontFamily: 'monospace', color: '#00d2ff', fontSize: '15px', fontWeight: 'bold', padding: '10px 14px', background: 'rgba(0, 210, 255, 0.08)', borderRadius: '8px', border: '1px solid rgba(0, 210, 255, 0.25)' }}>
+                🔑 {currentPrivacyPassword}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>New Master Password:</label>
+              <input 
+                type="text" 
+                placeholder="Enter new password" 
+                value={newPrivacyPassword} 
+                onChange={(e) => setNewPrivacyPassword(e.target.value)} 
+                required 
+                style={{ margin: 0, fontFamily: 'monospace' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <button type="submit" style={{ background: 'linear-gradient(135deg, #0284c7 0%, #00d2ff 100%)', border: 'none', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0, 210, 255, 0.35)' }}>
+              Update Master Password
+            </button>
+            {passwordSaveMsg && (
+              <span style={{ fontSize: '13px', color: passwordSaveMsg.startsWith('✅') ? '#38bdf8' : '#f87171', fontWeight: '500' }}>
+                {passwordSaveMsg}
               </span>
             )}
           </div>

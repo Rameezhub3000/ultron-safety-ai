@@ -1,8 +1,31 @@
 // ULTRON Offline Persistence & Auto-Sync Engine
 import axios from 'axios';
 
+const PRIVACY_PASSWORD_KEY = 'ultron_privacy_password';
 const DISARM_PIN_KEY = 'ultron_disarm_pin';
 const DURESS_PIN_KEY = 'ultron_duress_pin';
+
+export function getPrivacyPassword() {
+  try {
+    return localStorage.getItem(PRIVACY_PASSWORD_KEY) || 'RAMEEZ';
+  } catch (err) {
+    return 'RAMEEZ';
+  }
+}
+
+export function savePrivacyPassword(newPassword) {
+  try {
+    if (newPassword && String(newPassword).trim() !== '') {
+      localStorage.setItem(PRIVACY_PASSWORD_KEY, String(newPassword).trim());
+      window.dispatchEvent(new CustomEvent('ultron-privacy-password-updated'));
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.warn('[OFFLINE STORAGE] Failed to save privacy password:', err);
+    return false;
+  }
+}
 
 export function getSecurityPins() {
   try {
